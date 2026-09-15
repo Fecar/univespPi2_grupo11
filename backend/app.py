@@ -1,29 +1,43 @@
-# import os
-from flask import Flask, jsonify, request
-from services.database import DatabasePSQL
+from flask import Flask
+from config import Config
+from services.database import db, migrate
+from routes import register_routes
 
-app = Flask(__name__)
-db_psql = DatabasePSQL()
+def create_app():
 
-@app.route('/')
-def index():
-    return jsonify({"status": "API Flusk is ONLINE!"})
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    db.init_app(app)
+    migrate.init_app(app, db)
 
-@app.route('/db-status')
-def db_status():
-    try:
-        conn = db_psql.get_db_conn()
-        cur = conn.cursor()
-        cur.execute('SELECT version();')
-        db_version = cur.fetchone()
-        cur.close()
-        conn.close()
-        return jsonify({
-            "status" : "Success connection with PostgreSQL!",
-            "postgres_version": db_version[0]
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}, 500)
+    import models
+    register_routes(app)
+
+
+    return app
+
+app = create_app()
+
+# @app.route('/')
+# def index():
+#     return jsonify({"status": "API Flusk is ONLINE!"})
+#
+# @app.route('/db-status')
+# def db_status():
+#     try:
+#         conn = db_psql.get_db_conn()
+#         cur = conn.cursor()
+#         cur.execute('SELECT version();')
+#         db_version = cur.fetchone()
+#         cur.close()
+#         conn.close()
+#         return jsonify({
+#             "status" : "Success connection with PostgreSQL!",
+#             "postgres_version": db_version[0]
+#         })
+#     except Exception as e:
+#         return jsonify({"error": str(e)}, 500)
 
 
 if __name__ == '__main__':
