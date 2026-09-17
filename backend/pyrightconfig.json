@@ -1,0 +1,11 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "reportGeneralTypeIssues": "none",
+  "reportUnknownMemberType": "none",
+  "executionEnvironments": [
+    {
+      "root": "."
+    }
+  ]
+}
