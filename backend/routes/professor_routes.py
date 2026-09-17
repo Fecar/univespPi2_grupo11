@@ -14,7 +14,7 @@ def listar_professores():
     ])
 
 
-@professor_bp.route("/<int:professor_id>", methods=["GET"])
+@professor_bp.route("/<string:professor_id>", methods=["GET"])
 def obter_professor(professor_id):
     professor = Professor.query.get_or_404(professor_id)
     return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email})
@@ -23,16 +23,16 @@ def obter_professor(professor_id):
 @professor_bp.route("/", methods=["POST"])
 def criar_professor():
     dados = request.get_json()
-    if not dados or "nome" not in dados or "email" not in dados:
-        return jsonify({"erro": "nome e email são obrigatórios"}), 400
+    if not dados or "nome" not in dados or "email" not in dados or "cpf" not in dados:
+        return jsonify({"erro": "nome, email e cpf são obrigatórios"}), 400
 
-    professor = Professor(nome=dados["nome"], email=dados["email"])
+    professor = Professor(nome=dados["nome"], email=dados["email"], cpf=dados["cpf"])
     db.session.add(professor)
     db.session.commit()
-    return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email}), 201
+    return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email, "cpf": professor.cpf}), 201
 
 
-@professor_bp.route("/<int:professor_id>", methods=["PUT"])
+@professor_bp.route("/<string:professor_id>", methods=["PUT"])
 def atualizar_professor(professor_id):
     professor = Professor.query.get_or_404(professor_id)
     dados = request.get_json() or {}
@@ -43,7 +43,7 @@ def atualizar_professor(professor_id):
     return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email})
 
 
-@professor_bp.route("/<int:professor_id>", methods=["DELETE"])
+@professor_bp.route("/<string:professor_id>", methods=["DELETE"])
 def deletar_professor(professor_id):
     professor = Professor.query.get_or_404(professor_id)
     db.session.delete(professor)
