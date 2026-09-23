@@ -8,16 +8,17 @@ professor_bp = Blueprint("professores", __name__, url_prefix="/professores")
 @professor_bp.route("/", methods=["GET"])
 def listar_professores():
     professores = Professor.query.all()
-    return jsonify([
-        {"id": p.id, "nome": p.nome, "email": p.email}
-        for p in professores
-    ])
+    return jsonify(
+        [{"id": p.id, "nome": p.nome, "email": p.email} for p in professores]
+    )
 
 
 @professor_bp.route("/<string:professor_id>", methods=["GET"])
 def obter_professor(professor_id):
     professor = Professor.query.get_or_404(professor_id)
-    return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email})
+    return jsonify(
+        {"id": professor.id, "nome": professor.nome, "email": professor.email}
+    )
 
 
 @professor_bp.route("/", methods=["POST"])
@@ -29,7 +30,17 @@ def criar_professor():
     professor = Professor(nome=dados["nome"], email=dados["email"], cpf=dados["cpf"])
     db.session.add(professor)
     db.session.commit()
-    return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email, "cpf": professor.cpf}), 201
+    return (
+        jsonify(
+            {
+                "id": professor.id,
+                "nome": professor.nome,
+                "email": professor.email,
+                "cpf": professor.cpf,
+            }
+        ),
+        201,
+    )
 
 
 @professor_bp.route("/<string:professor_id>", methods=["PUT"])
@@ -40,7 +51,9 @@ def atualizar_professor(professor_id):
     professor.nome = dados.get("nome", professor.nome)
     professor.email = dados.get("email", professor.email)
     db.session.commit()
-    return jsonify({"id": professor.id, "nome": professor.nome, "email": professor.email})
+    return jsonify(
+        {"id": professor.id, "nome": professor.nome, "email": professor.email}
+    )
 
 
 @professor_bp.route("/<string:professor_id>", methods=["DELETE"])

@@ -8,26 +8,20 @@ curso_bp = Blueprint("cursos", __name__, url_prefix="/cursos")
 @curso_bp.route("/", methods=["GET"])
 def listar_cursos():
     cursos = Curso.query.all()
-    return jsonify([
-        {
-            "id": c.id,
-            "nome": c.nome,
-            "nivel": c.nivel,
-            "professor_id": c.professor_id,
-        }
-        for c in cursos
-    ])
+    return jsonify([curso.to_dict() for curso in cursos]), 200
 
 
 @curso_bp.route("/<string:curso_id>", methods=["GET"])
 def obter_curso(curso_id):
     curso = Curso.query.get_or_404(curso_id)
-    return jsonify({
-        "id": curso.id,
-        "nome": curso.nome,
-        "nivel": curso.nivel,
-        "professor_id": curso.professor_id,
-    })
+    return jsonify(
+        {
+            "id": curso.id,
+            "nome": curso.nome,
+            "nivel": curso.nivel,
+            "professor_id": curso.professor_id,
+        }
+    )
 
 
 @curso_bp.route("/", methods=["POST"])
@@ -37,17 +31,22 @@ def criar_curso():
         return jsonify({"erro": "nome é obrigatório"}), 400
 
     professor_id = dados.get("professor_id")
-    if professor_id and not Professor.query.get(professor_id):
-        return jsonify({"erro": "ID do Professor é inválido"}), 400
+    if not professor_id or not Professor.query.get(professor_id):
+        return jsonify({"erro": "O 'professor_id' é inválido ou vazio."}), 400
 
     curso = Curso(
         nome=dados["nome"],
-        nivel=dados.get("nivel"),
+        nivel=dados["nivel"],
         professor_id=professor_id,
     )
     db.session.add(curso)
     db.session.commit()
-    return jsonify({"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id}), 201
+    return (
+        jsonify(
+            {"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id}
+        ),
+        201,
+    )
 
 
 @curso_bp.route("/<string:curso_id>", methods=["PUT"])
@@ -64,7 +63,9 @@ def atualizar_curso(curso_id):
     curso.nome = dados.get("nome", curso.nome)
     curso.nivel = dados.get("nivel", curso.nivel)
     db.session.commit()
-    return jsonify({"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id})
+    return jsonify(
+        {"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id}
+    )
 
 
 @curso_bp.route("/<string:curso_id>", methods=["DELETE"])
