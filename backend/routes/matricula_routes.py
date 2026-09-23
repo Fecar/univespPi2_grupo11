@@ -1,54 +1,35 @@
-from flask import Blueprint, request, jsonify
+from apiflask import APIBlueprint, abort
 from sqlalchemy.exc import IntegrityError
 from services.database import db
 from models import Matricula, Aluno, Curso
+from schemas.matricula import MatriculaIn, MatriculaStatusIn, MatriculaOut
 
-matricula_bp = Blueprint("matriculas", __name__, url_prefix="/matriculas")
+matricula_bp = APIBlueprint("matriculas", __name__, url_prefix="/matriculas")
 
 
 @matricula_bp.route("/", methods=["GET"])
+@matricula_bp.output(MatriculaOut(many=True))
 def listar_matriculas():
-    matriculas = Matricula.query.all()
-    return jsonify(
-        [
-            {
-                "id": m.id,
-                "aluno_id": m.aluno_id,
-                "curso_id": m.curso_id,
-                "status": m.status,
-            }
-            for m in matriculas
-        ]
-    )
+    return Matricula.query.all()
 
 
 @matricula_bp.route("/<string:matricula_id>", methods=["GET"])
+@matricula_bp.output(MatriculaOut)
 def obter_matricula(matricula_id):
-    matricula = Matricula.query.get_or_404(matricula_id)
-    return jsonify(
-        {
-            "id": matricula.id,
-            "aluno_id": matricula.aluno_id,
-            "curso_id": matricula.curso_id,
-            "status": matricula.status,
-        }
-    )
+    return Matricula.query.get_or_404(matricula_id)
 
 
 @matricula_bp.route("/", methods=["POST"])
-def criar_matricula():
-    dados = request.get_json()
-    if not dados or "aluno_id" not in dados or "curso_id" not in dados:
-        return jsonify({"erro": "aluno_id e curso_id são obrigatórios"}), 400
-
-    aluno_id = dados["aluno_id"]
-    curso_id = dados["curso_id"]
+@matricula_bp.input(MatriculaIn)
+@matricula_bp.output(MatriculaOut, status_code=201)
+def criar_matricula(json_data):
+    aluno_id = json_data["aluno_id"]
+    curso_id = json_data["curso_id"]
 
     if not Aluno.query.get(aluno_id):
-        return jsonify({"erro": "aluno_id inválido"}), 400
-
+        abort(400, message="aluno_id inválido")
     if not Curso.query.get(curso_id):
-        return jsonify({"erro": "curso_id inválido"}), 400
+        abort(400, message="curso_id inválido")
 
     matricula = Matricula(aluno_id=aluno_id, curso_id=curso_id)
     db.session.add(matricula)
@@ -57,27 +38,20 @@ def criar_matricula():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return jsonify({"erro": "Esse aluno já está matriculado nesse curso"}), 409
+        abort(409, message="Esse aluno já está matriculado nesse curso")
 
-    return (
-        jsonify(
-            {
-                "id": matricula.id,
-                "aluno_id": matricula.aluno_id,
-                "curso_id": matricula.curso_id,
-                "status": matricula.status,
-            }
-        ),
-        201,
-    )
+    return matricula
+
 
 @matricula_bp.route("/<string:matricula_id>", methods=["PUT"])
-def atualizar_matricula(matricula_id):
+@matricula_bp.input(MatriculaStatusIn)
+@matricula_bp.output(MatriculaOut)
+def atualizar_matricula(matricula_id, json_data):
     matricula = Matricula.query.get_or_404(matricula_id)
-    dados = request.get_json() or {}
-    matricula.status = dados.get("status", matricula.status)
+    if "status" in json_data:
+        matricula.status = json_data["status"]
     db.session.commit()
-    return jsonify({"id": matricula.id, "status": matricula.status})
+    return matricula
 
 
 @matricula_bp.route("/<string:matricula_id>", methods=["DELETE"])

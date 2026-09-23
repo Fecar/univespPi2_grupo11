@@ -1,48 +1,42 @@
-from flask import Blueprint, request, jsonify
+from apiflask import APIBlueprint
 from services.database import db
 from models import Aluno
+from schemas.aluno import AlunoIn, AlunoOut
 
-aluno_bp = Blueprint("alunos", __name__, url_prefix="/alunos")
+aluno_bp = APIBlueprint("alunos", __name__, url_prefix="/alunos")
 
 
 @aluno_bp.route("/", methods=["GET"])
+@aluno_bp.output(AlunoOut(many=True))
 def listar_alunos():
-    alunos = Aluno.query.all()
-    return jsonify([aluno.to_dict() for aluno in alunos]), 200
+    return Aluno.query.all()
 
 
 @aluno_bp.route("/<string:aluno_id>", methods=["GET"])
+@aluno_bp.output(AlunoOut)
 def obter_aluno(aluno_id):
-    aluno = Aluno.query.get_or_404(aluno_id)
-    return (
-        jsonify(
-            {"id": aluno.id, "nome": aluno.nome, "email": aluno.email, "cpf": aluno.cpf}
-        ),
-        200,
-    )
+    return Aluno.query.get_or_404(aluno_id)
 
 
 @aluno_bp.route("/", methods=["POST"])
-def criar_aluno():
-    dados = request.get_json()
-    if not dados or "nome" not in dados or "email" not in dados or "cpf" not in dados:
-        return jsonify({"erro": "nome, email e cpf são obrigatórios"}), 400
-
-    aluno = Aluno(nome=dados["nome"], email=dados["email"], cpf=dados["cpf"])
+@aluno_bp.input(AlunoIn)
+@aluno_bp.output(AlunoOut, status_code=201)
+def criar_aluno(json_data):
+    aluno = Aluno(**json_data)
     db.session.add(aluno)
     db.session.commit()
-    return jsonify({"id": aluno.id, "nome": aluno.nome, "email": aluno.email}), 201
+    return aluno
 
 
 @aluno_bp.route("/<string:aluno_id>", methods=["PUT"])
-def atualizar_aluno(aluno_id):
+@aluno_bp.input(AlunoIn(partial=True))
+@aluno_bp.output(AlunoOut)
+def atualizar_aluno(aluno_id, json_data):
     aluno = Aluno.query.get_or_404(aluno_id)
-    dados = request.get_json() or {}
-
-    aluno.nome = dados.get("nome", aluno.nome)
-    aluno.email = dados.get("email", aluno.email)
+    for campo, valor in json_data.items():
+        setattr(aluno, campo, valor)
     db.session.commit()
-    return jsonify({"id": aluno.id, "nome": aluno.nome, "email": aluno.email})
+    return aluno
 
 
 @aluno_bp.route("/<string:aluno_id>", methods=["DELETE"])

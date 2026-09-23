@@ -1,59 +1,41 @@
-from flask import Blueprint, request, jsonify
+from apiflask import APIBlueprint
 from services.database import db
 from models import Professor
+from schemas.professor import ProfessorIn, ProfessorOut, ProfessorOutId
 
-professor_bp = Blueprint("professores", __name__, url_prefix="/professores")
+professor_bp = APIBlueprint("professores", __name__, url_prefix="/professores")
 
 
 @professor_bp.route("/", methods=["GET"])
+@professor_bp.output(ProfessorOut(many=True))
 def listar_professores():
-    professores = Professor.query.all()
-    return jsonify(
-        [{"id": p.id, "nome": p.nome, "email": p.email} for p in professores]
-    )
+    return Professor.query.all()
 
 
 @professor_bp.route("/<string:professor_id>", methods=["GET"])
+@professor_bp.output(ProfessorOutId)
 def obter_professor(professor_id):
-    professor = Professor.query.get_or_404(professor_id)
-    return jsonify(
-        {"id": professor.id, "nome": professor.nome, "email": professor.email}
-    )
+    return Professor.query.get_or_404(professor_id)
 
 
 @professor_bp.route("/", methods=["POST"])
-def criar_professor():
-    dados = request.get_json()
-    if not dados or "nome" not in dados or "email" not in dados or "cpf" not in dados:
-        return jsonify({"erro": "nome, email e cpf são obrigatórios"}), 400
-
-    professor = Professor(nome=dados["nome"], email=dados["email"], cpf=dados["cpf"])
+@professor_bp.input(ProfessorIn)
+@professor_bp.output(ProfessorOut, status_code=201)
+def criar_professor(json_data):
+    professor = Professor(**json_data)
     db.session.add(professor)
     db.session.commit()
-    return (
-        jsonify(
-            {
-                "id": professor.id,
-                "nome": professor.nome,
-                "email": professor.email,
-                "cpf": professor.cpf,
-            }
-        ),
-        201,
-    )
-
+    return professor
 
 @professor_bp.route("/<string:professor_id>", methods=["PUT"])
-def atualizar_professor(professor_id):
+@professor_bp.input(ProfessorIn(partial=True))
+@professor_bp.output(ProfessorOut)
+def atualizar_professor(professor_id, json_data):
     professor = Professor.query.get_or_404(professor_id)
-    dados = request.get_json() or {}
-
-    professor.nome = dados.get("nome", professor.nome)
-    professor.email = dados.get("email", professor.email)
+    for campo, valor in json_data.items():
+        setattr(professor, campo, valor)
     db.session.commit()
-    return jsonify(
-        {"id": professor.id, "nome": professor.nome, "email": professor.email}
-    )
+    return professor
 
 
 @professor_bp.route("/<string:professor_id>", methods=["DELETE"])

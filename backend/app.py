@@ -1,11 +1,11 @@
-from flask import Flask
+from apiflask import APIFlask
 from config import Config
 from services.database import db, migrate
 from routes import register_routes
 
 def create_app():
 
-    app = Flask(__name__)
+    app = APIFlask(__name__)
     app.config.from_object(Config)
     
     db.init_app(app)

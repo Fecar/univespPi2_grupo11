@@ -1,71 +1,51 @@
-from flask import Blueprint, request, jsonify
+from apiflask import APIBlueprint, abort
 from services.database import db
 from models import Curso, Professor
+from schemas.curso import CursoIn, CursoOut
 
-curso_bp = Blueprint("cursos", __name__, url_prefix="/cursos")
+curso_bp = APIBlueprint("cursos", __name__, url_prefix="/cursos")
 
 
 @curso_bp.route("/", methods=["GET"])
+@curso_bp.output(CursoOut(many=True))
 def listar_cursos():
-    cursos = Curso.query.all()
-    return jsonify([curso.to_dict() for curso in cursos]), 200
+    return Curso.query.all()
 
 
 @curso_bp.route("/<string:curso_id>", methods=["GET"])
+@curso_bp.output(CursoOut)
 def obter_curso(curso_id):
-    curso = Curso.query.get_or_404(curso_id)
-    return jsonify(
-        {
-            "id": curso.id,
-            "nome": curso.nome,
-            "nivel": curso.nivel,
-            "professor_id": curso.professor_id,
-        }
-    )
+    return Curso.query.get_or_404(curso_id)
 
 
 @curso_bp.route("/", methods=["POST"])
-def criar_curso():
-    dados = request.get_json()
-    if not dados or "nome" not in dados or "nivel" not in dados:
-        return jsonify({"erro": "nome e/ou nivel são obrigatórios"}), 400
+@curso_bp.input(CursoIn)
+@curso_bp.output(CursoOut, status_code=201)
+def criar_curso(json_data):
+    professor_id = json_data["professor_id"]
+    if not Professor.query.get(professor_id):
+        abort(400, message="professor_id inválido")
 
-    professor_id = dados.get("professor_id")
-    if not professor_id or not Professor.query.get(professor_id):
-        return jsonify({"erro": "O 'professor_id' é inválido ou vazio."}), 400
-
-    curso = Curso(
-        nome=dados["nome"],
-        nivel=dados["nivel"],
-        professor_id=professor_id,
-    )
+    curso = Curso(**json_data)
     db.session.add(curso)
     db.session.commit()
-    return (
-        jsonify(
-            {"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id}
-        ),
-        201,
-    )
+    return curso
 
 
 @curso_bp.route("/<string:curso_id>", methods=["PUT"])
-def atualizar_curso(curso_id):
+@curso_bp.input(CursoIn(partial=True))
+@curso_bp.output(CursoOut)
+def atualizar_curso(curso_id, json_data):
     curso = Curso.query.get_or_404(curso_id)
-    dados = request.get_json() or {}
 
-    if "professor_id" in dados:
-        professor_id = dados["professor_id"]
-        if professor_id and not Professor.query.get(professor_id):
-            return jsonify({"erro": "professor_id inválido"}), 400
-        curso.professor_id = professor_id
+    if "professor_id" in json_data and not Professor.query.get(json_data["professor_id"]):
+        abort(400, message="professor_id inválido")
 
-    curso.nome = dados.get("nome", curso.nome)
-    curso.nivel = dados.get("nivel", curso.nivel)
+    for campo, valor in json_data.items():
+        setattr(curso, campo, valor)
+
     db.session.commit()
-    return jsonify(
-        {"id": curso.id, "nome": curso.nome, "professor_id": curso.professor_id}
-    )
+    return curso
 
 
 @curso_bp.route("/<string:curso_id>", methods=["DELETE"])
