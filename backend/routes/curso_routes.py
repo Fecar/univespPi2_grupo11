@@ -27,8 +27,8 @@ def obter_curso(curso_id):
 @curso_bp.route("/", methods=["POST"])
 def criar_curso():
     dados = request.get_json()
-    if not dados or "nome" not in dados:
-        return jsonify({"erro": "nome é obrigatório"}), 400
+    if not dados or "nome" not in dados or "nivel" not in dados:
+        return jsonify({"erro": "nome e/ou nivel são obrigatórios"}), 400
 
     professor_id = dados.get("professor_id")
     if not professor_id or not Professor.query.get(professor_id):
