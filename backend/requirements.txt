@@ -17,3 +17,4 @@ SQLAlchemy==2.0.53
 typing_extensions==4.16.0
 Werkzeug==3.1.8
 apiflask==3.1.2
+flask-jwt-extended==4.7.4

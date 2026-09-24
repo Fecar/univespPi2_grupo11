@@ -6,8 +6,7 @@ from datetime import date, datetime, timezone
 class Curso(db.Model):
     __tablename__ = "cursos"
 
-    id = db.Column(db.String(36), primary_key=True,
-                   default=lambda: str(uuid.uuid4()))
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     nome = db.Column(db.String(255), nullable=False)
     nivel = db.Column(db.String(255), nullable=False)
 
@@ -16,8 +15,7 @@ class Curso(db.Model):
     )
     professor = db.relationship("Professor", backref="cursos")
 
-    data_criacao = db.Column(
-        db.DateTime, default=lambda: datetime.now(timezone.utc))
+    data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         data = {}

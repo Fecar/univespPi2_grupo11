@@ -26,4 +26,9 @@ class Professor(db.Model):
 
     # Controle
     data_cadastro = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    privilegio = db.Column(db.String(10))
+    privilegio = db.Column(db.String(10), default="comum")
+
+    senha_hash = db.Column(db.String(255), nullable=False)
+    tentativas_falhas = db.Column(db.Integer, default=0, nullable=False)
+    bloqueado_ate = db.Column(db.DateTime, nullable=True)
+
