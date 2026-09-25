@@ -19,7 +19,7 @@ def listar_turmas():
 @jwt_required()
 @turma_bp.output(TurmaOut)
 def obter_turma(turma_id):
-    return Turma.query.get_or_404(turma_id)
+    return db.get_or_404(Turma, turma_id)
 
 
 @turma_bp.route("/", methods=["POST"])
@@ -27,9 +27,9 @@ def obter_turma(turma_id):
 @turma_bp.input(TurmaIn)
 @turma_bp.output(TurmaOut, status_code=201)
 def criar_turma(json_data):
-    if not Curso.query.get(json_data["curso_id"]):
+    if not db.session.get(Curso, json_data["curso_id"]):
         abort(400, message="curso_id inválido")
-    if not Professor.query.get(json_data["professor_id"]):
+    if not db.session.get(Professor, json_data["professor_id"]):
         abort(400, message="professor_id inválido")
 
     turma = Turma(**json_data)
@@ -39,15 +39,17 @@ def criar_turma(json_data):
 
 
 @turma_bp.route("/<string:turma_id>", methods=["PUT"])
-@jwt_required()
+@admin_required
 @turma_bp.input(TurmaIn(partial=True))
 @turma_bp.output(TurmaOut)
 def atualizar_turma(turma_id, json_data):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = db.get_or_404(Turma, turma_id)
 
-    if "curso_id" in json_data and not Curso.query.get(json_data["curso_id"]):
+    if "curso_id" in json_data and not db.session.get(Curso, json_data["curso_id"]):
         abort(400, message="curso_id inválido")
-    if "professor_id" in json_data and not Professor.query.get(json_data["professor_id"]):
+    if "professor_id" in json_data and not db.session.get(
+        Professor, json_data["professor_id"]
+    ):
         abort(400, message="professor_id inválido")
 
     for campo, valor in json_data.items():
@@ -60,7 +62,7 @@ def atualizar_turma(turma_id, json_data):
 @turma_bp.route("/<string:turma_id>", methods=["DELETE"])
 @admin_required
 def deletar_turma(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = db.get_or_404(Turma, turma_id)
     db.session.delete(turma)
     db.session.commit()
     return "", 204

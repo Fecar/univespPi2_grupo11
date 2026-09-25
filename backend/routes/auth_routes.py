@@ -21,7 +21,12 @@ def login(json_data):
         abort(401, message="Credenciais inválidas")
 
     now = datetime.now(timezone.utc)
-    if professor.bloqueado_ate and professor.bloqueado_ate > now:
+    bloqueado_ate = professor.bloqueado_ate
+
+    if bloqueado_ate and bloqueado_ate.tzinfo is None:
+        bloqueado_ate = bloqueado_ate.replace(tzinfo=timezone.utc)
+
+    if bloqueado_ate and bloqueado_ate > now:
         abort(
             401, message="Conta temporariamente bloqueada, tente novamente mais tarde!"
         )

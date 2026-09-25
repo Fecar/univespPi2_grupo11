@@ -20,7 +20,7 @@ def listar_avaliacoes():
 @jwt_required()
 @avaliacao_bp.output(AvaliacaoOut)
 def obter_avaliacao(avaliacao_id):
-    return Avaliacao.query.get_or_404(avaliacao_id)
+    return db.get_or_404(Avaliacao, avaliacao_id)
 
 
 @avaliacao_bp.route("/", methods=["POST"])
@@ -28,9 +28,9 @@ def obter_avaliacao(avaliacao_id):
 @avaliacao_bp.input(AvaliacaoIn)
 @avaliacao_bp.output(AvaliacaoOut, status_code=201)
 def criar_avaliacao(json_data):
-    if not Aluno.query.get(json_data["aluno_id"]):
+    if not db.session.get(Aluno, json_data["aluno_id"]):
         abort(400, message="aluno_id inválido")
-    if not Aula.query.get(json_data["aula_id"]):
+    if not db.session.get(Aula, json_data["aula_id"]):
         abort(400, message="aula_id inválido")
 
     avaliacao = Avaliacao(**json_data)
@@ -50,7 +50,7 @@ def criar_avaliacao(json_data):
 @avaliacao_bp.input(AvaliacaoIn(partial=True))
 @avaliacao_bp.output(AvaliacaoOut)
 def atualizar_avaliacao(avaliacao_id, json_data):
-    avaliacao = Avaliacao.query.get_or_404(avaliacao_id)
+    avaliacao = db.get_or_404(Avaliacao, avaliacao_id)
     for campo, valor in json_data.items():
         setattr(avaliacao, campo, valor)
     db.session.commit()
@@ -60,7 +60,7 @@ def atualizar_avaliacao(avaliacao_id, json_data):
 @avaliacao_bp.route("/<string:avaliacao_id>", methods=["DELETE"])
 @admin_required
 def deletar_avaliacao(avaliacao_id):
-    avaliacao = Avaliacao.query.get_or_404(avaliacao_id)
+    avaliacao = db.get_or_404(Avaliacao, avaliacao_id)
     db.session.delete(avaliacao)
     db.session.commit()
     return "", 204

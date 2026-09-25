@@ -19,7 +19,7 @@ def listar_anotacoes():
 @jwt_required()
 @anotacao_bp.output(AnotacaoOut)
 def obter_anotacao(anotacao_id):
-    return Anotacao.query.get_or_404(anotacao_id)
+    return db.get_or_404(Anotacao, anotacao_id)
 
 
 @anotacao_bp.route("/", methods=["POST"])
@@ -27,7 +27,7 @@ def obter_anotacao(anotacao_id):
 @anotacao_bp.input(AnotacaoIn)
 @anotacao_bp.output(AnotacaoOut, status_code=201)
 def criar_anotacao(json_data):
-    if not Aluno.query.get(json_data["aluno_id"]):
+    if not db.session.get(Aluno, json_data["aluno_id"]):
         abort(400, message="aluno_id inválido")
 
     anotacao = Anotacao(**json_data, professor_id=get_jwt_identity())
@@ -41,7 +41,7 @@ def criar_anotacao(json_data):
 @anotacao_bp.input(AnotacaoIn(partial=True))
 @anotacao_bp.output(AnotacaoOut)
 def atualizar_anotacao(anotacao_id, json_data):
-    anotacao = Anotacao.query.get_or_404(anotacao_id)
+    anotacao = db.get_or_404(Anotacao, anotacao_id)
     for campo, valor in json_data.items():
         setattr(anotacao, campo, valor)
     db.session.commit()
@@ -51,7 +51,7 @@ def atualizar_anotacao(anotacao_id, json_data):
 @anotacao_bp.route("/<string:anotacao_id>", methods=["DELETE"])
 @admin_required
 def deletar_anotacao(anotacao_id):
-    anotacao = Anotacao.query.get_or_404(anotacao_id)
+    anotacao = db.get_or_404(Anotacao, anotacao_id)
     db.session.delete(anotacao)
     db.session.commit()
     return "", 204

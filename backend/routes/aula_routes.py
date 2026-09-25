@@ -19,7 +19,7 @@ def listar_aulas():
 @jwt_required()
 @aula_bp.output(AulaOut)
 def obter_aula(aula_id):
-    return Aula.query.get_or_404(aula_id)
+    return db.get_or_404(Aula, aula_id)
 
 
 @aula_bp.route("/", methods=["POST"])
@@ -27,7 +27,7 @@ def obter_aula(aula_id):
 @aula_bp.input(AulaIn)
 @aula_bp.output(AulaOut, status_code=201)
 def criar_aula(json_data):
-    if not Turma.query.get(json_data["turma_id"]):
+    if not db.session.get(Turma, json_data["turma_id"]):
         abort(400, message="turma_id inválido")
 
     aula = Aula(**json_data)
@@ -37,13 +37,13 @@ def criar_aula(json_data):
 
 
 @aula_bp.route("/<string:aula_id>", methods=["PUT"])
-@jwt_required()
+@admin_required
 @aula_bp.input(AulaIn(partial=True))
 @aula_bp.output(AulaOut)
 def atualizar_aula(aula_id, json_data):
-    aula = Aula.query.get_or_404(aula_id)
+    aula = db.get_or_404(Aula, aula_id)
 
-    if "turma_id" in json_data and not Turma.query.get(json_data["turma_id"]):
+    if "turma_id" in json_data and not db.session.get(Turma, json_data["turma_id"]):
         abort(400, message="turma_id inválido")
 
     for campo, valor in json_data.items():
@@ -56,7 +56,7 @@ def atualizar_aula(aula_id, json_data):
 @aula_bp.route("/<string:aula_id>", methods=["DELETE"])
 @admin_required
 def deletar_aula(aula_id):
-    aula = Aula.query.get_or_404(aula_id)
+    aula = db.get_or_404(Aula, aula_id)
     db.session.delete(aula)
     db.session.commit()
     return "", 204

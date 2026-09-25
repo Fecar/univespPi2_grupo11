@@ -16,10 +16,10 @@ def listar_cursos():
 
 
 @curso_bp.route("/<string:curso_id>", methods=["GET"])
-@jwt_required
+@jwt_required()
 @curso_bp.output(CursoOut)
 def obter_curso(curso_id):
-    return Curso.query.get_or_404(curso_id)
+    return db.get_or_404(Curso, curso_id)
 
 
 @curso_bp.route("/", methods=["POST"])
@@ -38,7 +38,7 @@ def criar_curso(json_data):
 @curso_bp.input(CursoIn(partial=True))
 @curso_bp.output(CursoOut)
 def atualizar_curso(curso_id, json_data):
-    curso = Curso.query.get_or_404(curso_id)
+    curso = db.get_or_404(Curso, curso_id)
 
     for campo, valor in json_data.items():
         setattr(curso, campo, valor)
@@ -50,7 +50,7 @@ def atualizar_curso(curso_id, json_data):
 @curso_bp.route("/<string:curso_id>", methods=["DELETE"])
 @admin_required
 def deletar_curso(curso_id):
-    curso = Curso.query.get_or_404(curso_id)
+    curso = db.get_or_404(Curso, curso_id)
     db.session.delete(curso)
     db.session.commit()
     return "", 204

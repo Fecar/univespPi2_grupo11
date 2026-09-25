@@ -6,10 +6,10 @@ from routes import register_routes
 from services.admin import cria_primeiro_professor
 
 
-def create_app():
+def create_app(Config_object=Config):
 
     app = APIFlask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(Config_object)
 
     db.init_app(app)
     migrate.init_app(app, db)

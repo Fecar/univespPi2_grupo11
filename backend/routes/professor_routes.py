@@ -20,7 +20,7 @@ def listar_professores():
 @self_or_admin_required
 @professor_bp.output(ProfessorOutId)
 def obter_professor(professor_id):
-    return Professor.query.get_or_404(professor_id)
+    return db.get_or_404(Professor, professor_id)
 
 
 @professor_bp.route("/", methods=["POST"])
@@ -42,7 +42,7 @@ def criar_professor(json_data):
 def atualizar_professor(professor_id, json_data):
     if professor_id == get_jwt_identity() and "privilegio" in json_data:
         abort(400, message="Você não pode alterar seu próprio privilégio")
-    professor = Professor.query.get_or_404(professor_id)
+    professor = db.get_or_404(Professor, professor_id)
     if "senha" in json_data:
         professor.senha_hash = generate_password_hash(json_data.pop("senha"))
     for campo, valor in json_data.items():
@@ -57,7 +57,7 @@ def deletar_professor(professor_id):
     if professor_id == get_jwt_identity():
         abort(400, message="Você não pode deletar sua própria conta")
 
-    professor = Professor.query.get_or_404(professor_id)
+    professor = db.get_or_404(Professor, professor_id)
     db.session.delete(professor)
     db.session.commit()
     return "", 204

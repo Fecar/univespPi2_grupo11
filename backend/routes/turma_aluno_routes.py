@@ -20,7 +20,7 @@ def listar_turma_alunos():
 @jwt_required()
 @turma_aluno_bp.output(TurmaAlunoOut)
 def obter_turma_aluno(turma_aluno_id):
-    return TurmaAluno.query.get_or_404(turma_aluno_id)
+    return db.get_or_404(TurmaAluno, turma_aluno_id)
 
 
 @turma_aluno_bp.route("/", methods=["POST"])
@@ -31,9 +31,9 @@ def criar_turma_aluno(json_data):
     aluno_id = json_data["aluno_id"]
     turma_id = json_data["turma_id"]
 
-    if not Aluno.query.get(aluno_id):
+    if not db.session.get(Aluno, aluno_id):
         abort(400, message="aluno_id inválido")
-    if not Turma.query.get(turma_id):
+    if not db.session.get(Turma, turma_id):
         abort(400, message="turma_id inválido")
 
     turma_aluno = TurmaAluno(aluno_id=aluno_id, turma_id=turma_id)
@@ -51,7 +51,7 @@ def criar_turma_aluno(json_data):
 @turma_aluno_bp.route("/<string:turma_aluno_id>", methods=["DELETE"])
 @admin_required
 def deletar_turma_aluno(turma_aluno_id):
-    turma_aluno = TurmaAluno.query.get_or_404(turma_aluno_id)
+    turma_aluno = db.get_or_404(TurmaAluno, turma_aluno_id)
     db.session.delete(turma_aluno)
     db.session.commit()
     return "", 204

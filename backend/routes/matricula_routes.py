@@ -20,7 +20,7 @@ def listar_matriculas():
 @admin_required
 @matricula_bp.output(MatriculaOut)
 def obter_matricula(matricula_id):
-    return Matricula.query.get_or_404(matricula_id)
+    return db.get_or_404(Matricula, matricula_id)
 
 
 @matricula_bp.route("/", methods=["POST"])
@@ -31,9 +31,9 @@ def criar_matricula(json_data):
     aluno_id = json_data["aluno_id"]
     curso_id = json_data["curso_id"]
 
-    if not Aluno.query.get(aluno_id):
+    if not db.session.get(Aluno, aluno_id):
         abort(400, message="aluno_id inválido")
-    if not Curso.query.get(curso_id):
+    if not db.session.get(Curso, curso_id):
         abort(400, message="curso_id inválido")
 
     matricula = Matricula(aluno_id=aluno_id, curso_id=curso_id)
@@ -53,7 +53,7 @@ def criar_matricula(json_data):
 @matricula_bp.input(MatriculaStatusIn)
 @matricula_bp.output(MatriculaOut)
 def atualizar_matricula(matricula_id, json_data):
-    matricula = Matricula.query.get_or_404(matricula_id)
+    matricula = db.get_or_404(Matricula, matricula_id)
     if "status" in json_data:
         matricula.status = json_data["status"]
     db.session.commit()
@@ -63,7 +63,7 @@ def atualizar_matricula(matricula_id, json_data):
 @matricula_bp.route("/<string:matricula_id>", methods=["DELETE"])
 @admin_required
 def deletar_matricula(matricula_id):
-    matricula = Matricula.query.get_or_404(matricula_id)
+    matricula = db.get_or_404(Matricula, matricula_id)
     db.session.delete(matricula)
     db.session.commit()
     return "", 204

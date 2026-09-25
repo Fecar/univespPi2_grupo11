@@ -16,10 +16,10 @@ def listar_alunos():
 
 
 @aluno_bp.route("/<string:aluno_id>", methods=["GET"])
-@jwt_required
+@jwt_required()
 @aluno_bp.output(AlunoOut)
 def obter_aluno(aluno_id):
-    return Aluno.query.get_or_404(aluno_id)
+    return db.get_or_404(Aluno, aluno_id)
 
 
 @aluno_bp.route("/", methods=["POST"])
@@ -38,7 +38,7 @@ def criar_aluno(json_data):
 @aluno_bp.input(AlunoIn(partial=True))
 @aluno_bp.output(AlunoOut)
 def atualizar_aluno(aluno_id, json_data):
-    aluno = Aluno.query.get_or_404(aluno_id)
+    aluno = db.get_or_404(Aluno, aluno_id)
     for campo, valor in json_data.items():
         setattr(aluno, campo, valor)
     db.session.commit()
@@ -48,7 +48,7 @@ def atualizar_aluno(aluno_id, json_data):
 @aluno_bp.route("/<string:aluno_id>", methods=["DELETE"])
 @admin_required
 def deletar_aluno(aluno_id):
-    aluno = Aluno.query.get_or_404(aluno_id)
+    aluno = db.get_or_404(Aluno, aluno_id)
     db.session.delete(aluno)
     db.session.commit()
     return "", 204
