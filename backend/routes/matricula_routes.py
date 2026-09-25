@@ -10,7 +10,7 @@ matricula_bp = APIBlueprint("matriculas", __name__, url_prefix="/matriculas")
 
 
 @matricula_bp.route("/", methods=["GET"])
-@jwt_required()
+@admin_required
 @matricula_bp.output(MatriculaOut(many=True))
 def listar_matriculas():
     return Matricula.query.all()

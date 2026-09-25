@@ -16,7 +16,7 @@ def listar_alunos():
 
 
 @aluno_bp.route("/<string:aluno_id>", methods=["GET"])
-@admin_required
+@jwt_required
 @aluno_bp.output(AlunoOut)
 def obter_aluno(aluno_id):
     return Aluno.query.get_or_404(aluno_id)

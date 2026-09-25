@@ -22,8 +22,13 @@ class ProfessorIn(Schema):
     ano_conclusao = Integer()
     pos_graduacao = String()
 
+    area_atuacao = String()
+    tipo_contratacao = String()
+    data_inicio_atividades = Date()
+
     data_cadastro = DateTime()
     privilegio = String()
+
 
 class ProfessorOut(Schema):
     id = String()

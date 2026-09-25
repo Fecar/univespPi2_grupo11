@@ -1,6 +1,6 @@
 from apiflask import APIBlueprint, abort
 from services.database import db
-from models import Curso, Professor
+from models import Curso
 from schemas.curso import CursoIn, CursoOut
 from flask_jwt_extended import jwt_required
 from services.auth import admin_required
@@ -16,7 +16,7 @@ def listar_cursos():
 
 
 @curso_bp.route("/<string:curso_id>", methods=["GET"])
-@admin_required
+@jwt_required
 @curso_bp.output(CursoOut)
 def obter_curso(curso_id):
     return Curso.query.get_or_404(curso_id)
@@ -27,10 +27,6 @@ def obter_curso(curso_id):
 @curso_bp.input(CursoIn)
 @curso_bp.output(CursoOut, status_code=201)
 def criar_curso(json_data):
-    professor_id = json_data["professor_id"]
-    if not Professor.query.get(professor_id):
-        abort(400, message="professor_id inválido")
-
     curso = Curso(**json_data)
     db.session.add(curso)
     db.session.commit()
@@ -43,11 +39,6 @@ def criar_curso(json_data):
 @curso_bp.output(CursoOut)
 def atualizar_curso(curso_id, json_data):
     curso = Curso.query.get_or_404(curso_id)
-
-    if "professor_id" in json_data and not Professor.query.get(
-        json_data["professor_id"]
-    ):
-        abort(400, message="professor_id inválido")
 
     for campo, valor in json_data.items():
         setattr(curso, campo, valor)

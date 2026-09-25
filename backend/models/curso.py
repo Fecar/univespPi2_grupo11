@@ -10,11 +10,6 @@ class Curso(db.Model):
     nome = db.Column(db.String(255), nullable=False)
     nivel = db.Column(db.String(255), nullable=False)
 
-    professor_id = db.Column(
-        db.String(36), db.ForeignKey("professores.id"), nullable=False
-    )
-    professor = db.relationship("Professor", backref="cursos")
-
     data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):

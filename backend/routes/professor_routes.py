@@ -36,7 +36,7 @@ def criar_professor(json_data):
 
 
 @professor_bp.route("/<string:professor_id>", methods=["PUT"])
-@admin_required
+@self_or_admin_required
 @professor_bp.input(ProfessorIn(partial=True))
 @professor_bp.output(ProfessorOutId)
 def atualizar_professor(professor_id, json_data):

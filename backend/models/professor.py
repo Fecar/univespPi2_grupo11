@@ -24,6 +24,10 @@ class Professor(db.Model):
     ano_conclusao = db.Column(db.Integer)
     pos_graduacao = db.Column(db.String(255))
 
+    area_atuacao = db.Column(db.String(255))
+    tipo_contratacao = db.Column(db.String(100))
+    data_inicio_atividades = db.Column(db.Date)
+
     # Controle
     data_cadastro = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     privilegio = db.Column(db.String(10), default="comum")
