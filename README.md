@@ -12,6 +12,7 @@ Sistema de gerenciamento de aulas de inglês para professores — um backend em 
 - [Documentação da API](#documentação-da-api)
 - [Endpoints](#endpoints)
 - [Testes automatizados](#testes-automatizados)
+- [Frontend](#frontend)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Estrutura de pastas](#estrutura-de-pastas)
 
@@ -37,6 +38,10 @@ O sistema organiza o fluxo de uma escola de inglês:
 - **Docker** + **Docker Compose**
 - **Pytest** — testes automatizados
 - **Gunicorn** — servidor WSGI
+- **Vue 3** + **Vite** — frontend
+- **Pinia** — estado global no frontend
+- **Vue Router** — navegação no frontend
+- **Axios** — chamadas à API a partir do frontend
 
 ## Modelo de dados
 
@@ -180,6 +185,8 @@ Pré-requisitos: Docker e Docker Compose.
 
 4. A API está em `http://localhost:5000`. Faça login em `POST /auth/login` com o email/senha do admin criado, e use o `access_token` retornado nas próximas chamadas.
 
+5. O frontend está em `http://localhost:5173` e já chama a API sozinho — faça login pela própria tela.
+
 ### Criando uma nova migração
 
 Sempre que um model for alterado:
@@ -237,6 +244,63 @@ docker compose exec backend pytest -v
 
 Os testes rodam contra um banco SQLite em memória (configurado em `TestConfig`, em `config.py`), isolado do Postgres de desenvolvimento — não precisa de nenhum setup extra.
 
+## Frontend
+
+Existe uma primeira versão do frontend em Vue — feita como ponto de partida para a equipe de front assumir dali pra frente, não como produto pronto.
+
+### Stack
+
+- **Vue 3** (Composition API, `<script setup>`)
+- **Vite** — build e dev server
+- **Vue Router** — navegação entre telas
+- **Pinia** — estado global (sessão do professor logado)
+- **Axios** — chamadas para a API
+
+### O que já existe
+
+- Tela de login + apresentação (`LoginView.vue`), com a paleta de cores do projeto e responsiva (funciona como webapp em celular).
+- Uma `DashboardView.vue` de placeholder, só para confirmar que o login funciona de ponta a ponta — a tela de verdade ainda não foi construída.
+- Guarda de rota (`router/index.js`): páginas com `meta: { requiresAuth: true }` redirecionam para o login se não houver token.
+- Store de autenticação (`stores/auth.js`): guarda o `access_token` (hoje em `localStorage`) e expõe `login()` / `logout()` / `isAuthenticated()`.
+- Serviço de API (`services/api.js`): instância do Axios já configurada com a URL da API e o header `Authorization` injetado automaticamente em toda requisição.
+
+### Paleta de cores
+
+Inspirada na arte que a escola usa, definida como variáveis CSS em `frontend/src/assets/main.css`:
+
+| Variável | Cor | Uso |
+| --- | --- | --- |
+| `--color-primary` | `#0A1F44` | Header, fundo de destaque, textos de marca |
+| `--color-accent` | `#C8102E` | Botões de ação, links ativos |
+| `--color-background` | `#F7F8FA` | Fundo das páginas |
+| `--color-surface` | `#FFFFFF` | Cartões, formulários |
+| `--color-text` | `#1F2937` | Texto principal |
+| `--color-text-secondary` | `#6B7280` | Texto secundário, labels |
+| `--color-border` | `#E2E5EA` | Bordas e divisórias |
+| `--color-success` | `#2E7D32` | Confirmações |
+| `--color-error` | `#DC2626` | Erros e alertas |
+
+### Estrutura
+
+```
+frontend/src/
+├── main.js               # ponto de entrada — importa main.css, Pinia e Router
+├── App.vue                # só renderiza a rota atual
+├── assets/main.css        # variáveis de cor e estilos globais
+├── router/index.js        # rotas e guarda de autenticação
+├── stores/auth.js         # sessão do professor logado (Pinia)
+├── services/api.js        # instância do Axios
+└── views/
+    ├── LoginView.vue       # login + apresentação
+    └── DashboardView.vue   # placeholder pós-login
+```
+
+### O que falta (para a equipe de frontend)
+
+- Telas de CRUD para Professor, Aluno, Curso, Turma, Aula, Avaliação e Anotação, seguindo os endpoints documentados em [Endpoints](#endpoints).
+- Esconder/mostrar itens de navegação de acordo com o `privilegio` do professor logado (o backend já aplica a regra de permissão; o frontend só precisa refletir isso na interface).
+- Tratar a expiração do token — hoje, se o token expirar, a próxima chamada à API simplesmente falha com `401`; falta redirecionar para o login automaticamente nesse caso.
+
 ## Variáveis de ambiente
 
 Definidas no `.env` (não versionado — copie de `.env-examples`):
@@ -250,6 +314,7 @@ Definidas no `.env` (não versionado — copie de `.env-examples`):
 | `JWT_SECRET_KEY` | Chave usada para assinar os tokens JWT — troque por um valor próprio e secreto |
 | `ADMIN_USER` | Email do primeiro professor admin, usado pelo `flask seed-admin` |
 | `ADMIN_PASS` | Senha do primeiro professor admin, usado pelo `flask seed-admin` |
+| `VITE_API_URL` | URL da API usada pelo frontend (Axios) — em desenvolvimento local, `http://localhost:5000` |
 
 ## Estrutura de pastas
 
@@ -257,6 +322,23 @@ Definidas no `.env` (não versionado — copie de `.env-examples`):
 .
 ├── docker-compose.yml
 ├── .env-examples
+│
+├── frontend/
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── main.js
+│       ├── App.vue
+│       ├── assets/main.css
+│       ├── router/index.js
+│       ├── stores/auth.js
+│       ├── services/api.js
+│       └── views/
+│           ├── LoginView.vue
+│           └── DashboardView.vue
+│
 └── backend/
     ├── app.py                  # application factory
     ├── config.py               # configuração (produção e testes)

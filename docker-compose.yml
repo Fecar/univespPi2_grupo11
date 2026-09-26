@@ -42,6 +42,8 @@ services:
     build: ./frontend
     container_name: vue_frontend
     restart: always
+    env_files:
+      - .env
     ports:
       - "5173:5173"
     volumes:
