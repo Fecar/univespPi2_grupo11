@@ -1,34 +1,320 @@
-# univespPi2_grupo11
+# UNIVESP PI2 Grupo 11
 
-## O que e?
-Um CRUD de Professor, Aluno, Turma, Curso e Aula.
+Sistema de gerenciamento de aulas de inglês para professores — um backend em Flask que controla professores, alunos, cursos, turmas, aulas, avaliações e anotações, com autenticação JWT e dois níveis de permissão (admin e comum).
 
-## Relacoes 
-Professor admin cria/edita/deleta professores  
-    Professor cria/edita/deleta
-        Aluno 
-        Turma	 
-        Curso 
-        Aula 
-Calendario - formado de acordo com as aulas. 
+## Sumário
 
-## Estrutura 
-### Templates
-    Documentos html que serao carregados nas rotas
-### Routes
-    Documentos python das rotas backend
-### Static
-    Documentos de estilo e libs
-### Database
-    Documentos python de conexao com backend 
+- [Sobre o projeto](#sobre-o-projeto)
+- [Tecnologias](#tecnologias)
+- [Modelo de dados](#modelo-de-dados)
+- [Autenticação e permissões](#autenticação-e-permissões)
+- [Como rodar o projeto](#como-rodar-o-projeto)
+- [Documentação da API](#documentação-da-api)
+- [Endpoints](#endpoints)
+- [Testes automatizados](#testes-automatizados)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Estrutura de pastas](#estrutura-de-pastas)
+
+## Sobre o projeto
+
+O sistema organiza o fluxo de uma escola de inglês:
+
+- **Professores** administram o sistema — um professor com privilégio `admin` gerencia os demais professores; qualquer professor (`admin` ou `comum`) trabalha com alunos, cursos, turmas e aulas.
+- **Cursos** funcionam como um catálogo (ex: "Inglês Básico"), sem professor fixo.
+- **Turmas** são a seção de verdade: uma turma específica de um curso, com um professor e um grupo de alunos definidos.
+- **Alunos** se matriculam num curso (`Matricula`) e são alocados numa turma (`TurmaAluno`).
+- **Aulas** pertencem a uma turma, e cada aluno recebe uma **Avaliação** (nota) individual por aula.
+- **Anotações** registram observações de um professor sobre um aluno, visíveis para qualquer professor que venha a assumir esse aluno depois.
 
 ## Tecnologias
-Python
-Flask
-SQLAlchemy
 
-# Rodando o projeto
-### criando ambiente virtual
-    python -m venv nome-venv
-### instalando libraries
-    pip install -r requirements.txt
+- **Python 3.12**
+- **Flask** + **APIFlask** (rotas com validação e documentação OpenAPI automática)
+- **SQLAlchemy** + **Flask-SQLAlchemy** (ORM)
+- **Flask-Migrate** (Alembic) — migrações de banco
+- **Flask-JWT-Extended** — autenticação
+- **PostgreSQL** — banco de dados
+- **Docker** + **Docker Compose**
+- **Pytest** — testes automatizados
+- **Gunicorn** — servidor WSGI
+
+## Modelo de dados
+
+```mermaid
+erDiagram
+    PROFESSOR {
+        string id PK
+        string nome
+        string cpf UK
+        string email UK
+        string telefone
+        string celular_whatsapp
+        string cep
+        string logradouro
+        string bairro
+        string cidade_uf
+        string graduacao_curso
+        string instituicao_ensino
+        int    ano_conclusao
+        string pos_graduacao
+        string area_atuacao
+        string tipo_contratacao
+        date   data_inicio_atividades
+        string privilegio "admin ou comum"
+        string senha_hash
+        int    tentativas_falhas
+        datetime bloqueado_ate
+    }
+    ALUNO {
+        string id PK
+        string nome
+        date   data_nascimento
+        string responsavel
+        string numero_responsavel
+        string cpf UK
+        string email UK
+        string telefone
+        string numero_whatsapp
+    }
+    CURSO {
+        string id PK
+        string nome
+        string nivel
+    }
+    MATRICULA {
+        string id PK
+        string aluno_id FK
+        string curso_id FK
+        datetime data_matricula
+        string status
+    }
+    TURMA {
+        string id PK
+        string nome
+        string curso_id FK
+        string professor_id FK
+    }
+    TURMA_ALUNO {
+        string id PK
+        string aluno_id FK
+        string turma_id FK
+        datetime data_entrada
+    }
+    AULA {
+        string id PK
+        string nome
+        string assunto
+        string materia
+        datetime data_hora
+        string turma_id FK
+    }
+    AVALIACAO {
+        string id PK
+        string aluno_id FK
+        string aula_id FK
+        float  nota "pode ser null"
+    }
+    ANOTACAO {
+        string id PK
+        string aluno_id FK
+        string professor_id FK
+        string conteudo
+        datetime data_hora
+    }
+
+    PROFESSOR ||--o{ TURMA : leciona
+    CURSO ||--o{ TURMA : possui
+    CURSO ||--o{ MATRICULA : recebe
+    ALUNO ||--o{ MATRICULA : matricula
+    ALUNO ||--o{ TURMA_ALUNO : participa
+    TURMA ||--o{ TURMA_ALUNO : agrupa
+    TURMA ||--o{ AULA : contem
+    ALUNO ||--o{ AVALIACAO : recebe
+    AULA ||--o{ AVALIACAO : gera
+    ALUNO ||--o{ ANOTACAO : "e o assunto de"
+    PROFESSOR ||--o{ ANOTACAO : escreve
+```
+
+## Autenticação e permissões
+
+A API usa **JWT** (`Flask-JWT-Extended`). O login devolve um `access_token`, que deve ser enviado em toda requisição protegida no header:
+
+```
+Authorization: Bearer <token>
+```
+
+Existem dois níveis de professor:
+
+- **admin** — acesso total.
+- **comum** — pode ver (listar/obter) a maior parte dos recursos, mas só cria, edita e apaga o que está marcado como tal na tabela de endpoints abaixo.
+
+Regras extras, além do nível de acesso:
+
+- Um professor só vê o próprio perfil completo, a não ser que seja admin.
+- Um admin não pode remover o próprio privilégio nem deletar a própria conta.
+- Login bloqueia por 15 minutos após 5 tentativas de senha incorretas seguidas.
+
+## Como rodar o projeto
+
+Pré-requisitos: Docker e Docker Compose.
+
+1. Copie o arquivo de exemplo de variáveis de ambiente e preencha os valores (veja a tabela completa em [Variáveis de ambiente](#variáveis-de-ambiente)):
+
+   ```bash
+   cp .env-examples .env
+   ```
+
+2. Suba os containers:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   O banco Postgres sobe primeiro; quando fica saudável, o backend inicia. O `docker-entrypoint.sh` aplica as migrações pendentes (`flask db upgrade`) automaticamente antes de subir o servidor — não precisa rodar isso na mão.
+
+3. Crie o primeiro professor (admin), usando o `ADMIN_USER`/`ADMIN_PASS` definidos no `.env`:
+
+   ```bash
+   docker compose exec backend flask seed-admin
+   ```
+
+4. A API está em `http://localhost:5000`. Faça login em `POST /auth/login` com o email/senha do admin criado, e use o `access_token` retornado nas próximas chamadas.
+
+### Criando uma nova migração
+
+Sempre que um model for alterado:
+
+```bash
+docker compose exec backend flask db migrate -m "descricao da mudanca"
+docker compose exec backend flask db upgrade
+```
+
+Revise o arquivo gerado em `backend/migrations/versions/` antes de aplicar.
+
+## Documentação da API
+
+Com o projeto no ar, a documentação interativa (Swagger UI) fica disponível em:
+
+```
+http://localhost:5000/docs
+```
+
+Gerada automaticamente pelo APIFlask a partir dos schemas de cada rota — dá pra testar as chamadas direto pelo navegador.
+
+## Endpoints
+
+Todas as rotas de negócio exigem um token válido (`401` sem ele). A coluna **Acesso** mostra quem, além de estar logado, pode chamar cada uma.
+
+| Recurso | Método | Rota | Acesso |
+| --- | --- | --- | --- |
+| Auth | POST | `/auth/login` | Público |
+| Professor | GET | `/professores/` | Admin |
+| Professor | GET | `/professores/<id>` | Próprio perfil ou admin |
+| Professor | POST | `/professores/` | Admin |
+| Professor | PUT | `/professores/<id>` | Próprio perfil ou admin |
+| Professor | DELETE | `/professores/<id>` | Admin |
+| Aluno | GET | `/alunos/`, `/alunos/<id>` | Qualquer professor |
+| Aluno | POST, PUT, DELETE | `/alunos/...` | Admin |
+| Curso | GET | `/cursos/`, `/cursos/<id>` | Qualquer professor |
+| Curso | POST, PUT, DELETE | `/cursos/...` | Admin |
+| Matrícula | GET, POST, PUT, DELETE | `/matriculas/...` | Admin |
+| Turma | GET | `/turmas/`, `/turmas/<id>` | Qualquer professor |
+| Turma | POST, PUT, DELETE | `/turmas/...` | Admin |
+| Turma-Aluno | GET | `/turma-alunos/`, `/turma-alunos/<id>` | Qualquer professor |
+| Turma-Aluno | POST, DELETE | `/turma-alunos/...` | Admin |
+| Aula | GET | `/aulas/`, `/aulas/<id>` | Qualquer professor |
+| Aula | POST, PUT, DELETE | `/aulas/...` | Admin |
+| Avaliação | GET, POST, PUT | `/avaliacoes/...` | Qualquer professor |
+| Avaliação | DELETE | `/avaliacoes/<id>` | Admin |
+| Anotação | GET, POST, PUT | `/anotacoes/...` | Qualquer professor |
+| Anotação | DELETE | `/anotacoes/<id>` | Admin |
+
+## Testes automatizados
+
+```bash
+docker compose exec backend pytest -v
+```
+
+Os testes rodam contra um banco SQLite em memória (configurado em `TestConfig`, em `config.py`), isolado do Postgres de desenvolvimento — não precisa de nenhum setup extra.
+
+## Variáveis de ambiente
+
+Definidas no `.env` (não versionado — copie de `.env-examples`):
+
+| Variável | Descrição |
+| --- | --- |
+| `DB_USER` | Usuário do Postgres |
+| `DB_PASSWORD` | Senha do Postgres |
+| `DB_NAME` | Nome do banco |
+| `DATABASE_URL` | String de conexão completa usada pelo Flask |
+| `JWT_SECRET_KEY` | Chave usada para assinar os tokens JWT — troque por um valor próprio e secreto |
+| `ADMIN_USER` | Email do primeiro professor admin, usado pelo `flask seed-admin` |
+| `ADMIN_PASS` | Senha do primeiro professor admin, usado pelo `flask seed-admin` |
+
+## Estrutura de pastas
+
+```
+.
+├── docker-compose.yml
+├── .env-examples
+└── backend/
+    ├── app.py                  # application factory
+    ├── config.py               # configuração (produção e testes)
+    ├── Dockerfile
+    ├── docker-entrypoint.sh
+    ├── requirements.txt
+    ├── pyproject.toml
+    │
+    ├── models/                 # models do SQLAlchemy
+    │   ├── __init__.py
+    │   ├── professor.py
+    │   ├── aluno.py
+    │   ├── curso.py
+    │   ├── matricula.py
+    │   ├── turma.py            # Turma e TurmaAluno
+    │   ├── aula.py              # Aula e Avaliacao
+    │   └── anotacao.py
+    │
+    ├── schemas/                # validação e serialização (APIFlask)
+    │   ├── auth.py
+    │   ├── professor.py
+    │   ├── aluno.py
+    │   ├── curso.py
+    │   ├── matricula.py
+    │   ├── turma.py
+    │   └── aula.py
+    │
+    ├── routes/                 # blueprints de cada recurso
+    │   ├── __init__.py
+    │   ├── auth_routes.py
+    │   ├── professor_routes.py
+    │   ├── aluno_routes.py
+    │   ├── curso_routes.py
+    │   ├── matricula_routes.py
+    │   ├── turma_routes.py
+    │   ├── turma_aluno_routes.py
+    │   ├── aula_routes.py
+    │   ├── avaliacao_routes.py
+    │   └── anotacao_routes.py
+    │
+    ├── services/
+    │   ├── database.py          # instâncias do SQLAlchemy e do Migrate
+    │   ├── auth.py               # decorators admin_required / self_or_admin_required
+    │   └── admin.py              # cria o primeiro professor admin (flask seed-admin)
+    │
+    ├── migrations/
+    │   └── versions/             # migrações geradas pelo Alembic
+    │
+    └── tests/
+        ├── conftest.py           # fixtures (app, client, admin, comum, tokens)
+        ├── test_auth.py
+        ├── test_professor.py
+        ├── test_aluno.py
+        ├── test_curso.py
+        ├── test_matricula.py
+        ├── test_turma.py
+        ├── test_turma_aluno.py
+        ├── test_aula.py
+        ├── test_avaliacao.py
+        └── test_anotacao.py
+```

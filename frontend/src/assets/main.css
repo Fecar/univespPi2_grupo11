@@ -1,0 +1,33 @@
+:root {
+  --color-primary: #0A1F44;
+  --color-accent: #C8102E;
+  --color-background: #F7F8FA;
+  --color-surface: #FFFFFF;
+  --color-text: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-border: #E2E5EA;
+  --color-success: #2E7D32;
+  --color-error: #DC2626;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+input, button {
+  font-family: inherit;
+}
