@@ -163,11 +163,34 @@ Regras extras, além do nível de acesso:
 
 Pré-requisitos: Docker e Docker Compose.
 
+### Instalando o Docker no seu sistema
+
+- **Windows**: instale o [Docker Desktop](https://www.docker.com/products/docker-desktop/) e, durante a instalação, mantenha a opção "Use the WSL 2 based engine" ativada. Rode os comandos deste README pelo PowerShell, Windows Terminal ou dentro do WSL2 — evite o Prompt de Comando (`cmd`) clássico.
+- **Mac**: instale o [Docker Desktop](https://www.docker.com/products/docker-desktop/) — funciona tanto em Apple Silicon quanto em Intel, as imagens usadas no projeto suportam os dois.
+- **Linux**: instale o [Docker Engine](https://docs.docker.com/engine/install/) pelo gerenciador de pacotes da sua distro, garantindo que o plugin `docker compose` (v2, sem hífen) esteja incluído.
+
+Em qualquer um dos três, confirme que está tudo certo com:
+
+```bash
+docker --version
+docker compose version
+```
+
+⚠️ **Atenção só pra quem está no Windows**: por padrão, o Git pode converter as quebras de linha dos arquivos ao clonar o repositório — isso quebra o `backend/docker-entrypoint.sh` (um script que só o Linux dentro do container executa, e que não reconhece quebra de linha do Windows). Antes de clonar, crie um arquivo `.gitattributes` na raiz do projeto com este conteúdo:
+
+```
+*.sh text eol=lf
+```
+
+Isso garante que arquivos `.sh` sempre venham com quebra de linha `LF`, independente da configuração do Git na sua máquina. Se você já clonou o projeto sem isso e o backend não sobe, esse é o primeiro lugar a olhar.
+
 1. Copie o arquivo de exemplo de variáveis de ambiente e preencha os valores (veja a tabela completa em [Variáveis de ambiente](#variáveis-de-ambiente)):
 
    ```bash
    cp .env-examples .env
    ```
+
+   No Prompt de Comando (`cmd`) do Windows, o comando equivalente é `copy .env-examples .env`; no PowerShell, `cp` funciona normalmente.
 
 2. Suba os containers:
 
@@ -246,8 +269,6 @@ Os testes rodam contra um banco SQLite em memória (configurado em `TestConfig`,
 
 ## Frontend
 
-Existe uma primeira versão do frontend em Vue — feita como ponto de partida para a equipe de front assumir dali pra frente, não como produto pronto.
-
 ### Stack
 
 - **Vue 3** (Composition API, `<script setup>`)
@@ -256,17 +277,16 @@ Existe uma primeira versão do frontend em Vue — feita como ponto de partida p
 - **Pinia** — estado global (sessão do professor logado)
 - **Axios** — chamadas para a API
 
-### O que já existe
+### Comportamento do Front-end
 
 - Tela de login + apresentação (`LoginView.vue`), com a paleta de cores do projeto e responsiva (funciona como webapp em celular).
-- Uma `DashboardView.vue` de placeholder, só para confirmar que o login funciona de ponta a ponta — a tela de verdade ainda não foi construída.
 - Guarda de rota (`router/index.js`): páginas com `meta: { requiresAuth: true }` redirecionam para o login se não houver token.
 - Store de autenticação (`stores/auth.js`): guarda o `access_token` (hoje em `localStorage`) e expõe `login()` / `logout()` / `isAuthenticated()`.
 - Serviço de API (`services/api.js`): instância do Axios já configurada com a URL da API e o header `Authorization` injetado automaticamente em toda requisição.
 
 ### Paleta de cores
 
-Inspirada na arte que a escola usa, definida como variáveis CSS em `frontend/src/assets/main.css`:
+Inspirada na bandeira do Reino Unido, definida como variáveis CSS em `frontend/src/assets/main.css`:
 
 | Variável | Cor | Uso |
 | --- | --- | --- |
@@ -294,12 +314,6 @@ frontend/src/
     ├── LoginView.vue       # login + apresentação
     └── DashboardView.vue   # placeholder pós-login
 ```
-
-### O que falta (para a equipe de frontend)
-
-- Telas de CRUD para Professor, Aluno, Curso, Turma, Aula, Avaliação e Anotação, seguindo os endpoints documentados em [Endpoints](#endpoints).
-- Esconder/mostrar itens de navegação de acordo com o `privilegio` do professor logado (o backend já aplica a regra de permissão; o frontend só precisa refletir isso na interface).
-- Tratar a expiração do token — hoje, se o token expirar, a próxima chamada à API simplesmente falha com `401`; falta redirecionar para o login automaticamente nesse caso.
 
 ## Variáveis de ambiente
 
