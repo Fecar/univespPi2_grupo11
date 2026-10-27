@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:?Defina DB_NAME}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      FLASK_DEBUG: "0"
+      DATABASE_URL: ${DATABASE_URL:?Defina DATABASE_URL apontando para db}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose: ["5000"]
+    networks: [internal]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on: [backend]
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  pgdata_prod:
